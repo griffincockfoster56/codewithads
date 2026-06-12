@@ -53,6 +53,21 @@ export class Info extends Schema.Class<Info>("Config.Info")({
     .annotate({
       description: "Enterprise sharing service configuration",
     }),
+  ads: Schema.Struct({
+    enabled: Schema.Boolean.pipe(Schema.optional).annotate({
+      description: "Show sponsor messages while the model is thinking or running tools",
+    }),
+    endpoint: Schema.String.pipe(Schema.optional).annotate({
+      description: "Base URL of the sponsor message service",
+    }),
+    min_display_ms: Schema.Number.pipe(Schema.optional).annotate({
+      description: "Minimum time in milliseconds a sponsor message stays on screen once shown",
+    }),
+  })
+    .pipe(Schema.optional)
+    .annotate({
+      description: "Sponsor message configuration for the ad-supported fork",
+    }),
   username: Schema.String.pipe(Schema.optional).annotate({
     description: "Username displayed in conversations and used for telemetry identity",
   }),

@@ -3,6 +3,7 @@ import type { BuiltinTuiPlugin } from "../builtins"
 import { createMemo, Match, Show, Switch } from "solid-js"
 import { abbreviateHome } from "../../runtime"
 import { useTuiPaths } from "../../context/runtime"
+import { useLocal } from "../../context/local"
 import { useHomeSessionDestination } from "../../routes/home/session-destination"
 
 const id = "internal:home-footer"
@@ -51,6 +52,23 @@ function Mcp(props: { api: TuiPluginApi }) {
   )
 }
 
+// Agent + model meta lives down here on home; the prompt's meta line is an ad slot.
+function ModelInfo(props: { api: TuiPluginApi }) {
+  const theme = () => props.api.theme.current
+  const local = useLocal()
+  const variant = createMemo(() => local.model.variant.current())
+  return (
+    <Show when={local.agent.current()}>
+      {(agent) => (
+        <text fg={theme().textMuted} flexShrink={0}>
+          {agent().name.charAt(0).toUpperCase() + agent().name.slice(1)} · {local.model.parsed().model}
+          {variant() ? " · " + variant() : ""}
+        </text>
+      )}
+    </Show>
+  )
+}
+
 function Version(props: { api: TuiPluginApi }) {
   const theme = () => props.api.theme.current
 
@@ -75,6 +93,7 @@ function View(props: { api: TuiPluginApi }) {
     >
       <Directory api={props.api} />
       <Mcp api={props.api} />
+      <ModelInfo api={props.api} />
       <box flexGrow={1} />
       <Version api={props.api} />
     </box>

@@ -35,6 +35,7 @@ import { SDKProvider, useSDK } from "./context/sdk"
 import { StartupLoading } from "./component/startup-loading"
 import { SyncProvider, useSync } from "./context/sync"
 import { DataProvider } from "./context/data"
+import { AdsProvider } from "./context/ads"
 import { LocalProvider, useLocal } from "./context/local"
 import { DialogModel } from "./component/dialog-model"
 import { useConnected } from "./component/use-connected"
@@ -295,6 +296,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                           <ProjectProvider>
                                             <SyncProvider>
                                               <DataProvider>
+                                                <AdsProvider>
                                                 <ThemeProvider mode={mode}>
                                                   <LocalProvider>
                                                     <PromptStashProvider>
@@ -315,6 +317,7 @@ export const run = Effect.fn("Tui.run")(function* (input: TuiInput) {
                                                     </PromptStashProvider>
                                                   </LocalProvider>
                                                 </ThemeProvider>
+                                                </AdsProvider>
                                               </DataProvider>
                                             </SyncProvider>
                                           </ProjectProvider>

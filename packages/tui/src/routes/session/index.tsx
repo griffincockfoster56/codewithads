@@ -20,6 +20,14 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { useRoute, useRouteData } from "../../context/route"
 import { useProject } from "../../context/project"
 import { useSync } from "../../context/sync"
+import {
+  SponsorBadge,
+  SponsorBlock,
+  sponsorLabel,
+  useSponsorColor,
+  useSponsorDisplay,
+  useSponsorText,
+} from "../../context/ads"
 import { useEvent } from "../../context/event"
 import { SplitBorder } from "../../ui/border"
 import { useTuiPaths, useTuiTerminalEnvironment } from "../../context/runtime"
@@ -1541,27 +1549,32 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
       </Show>
       <Switch>
         <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
-          <box paddingLeft={3}>
-            <text marginTop={1}>
-              <span
-                style={{
-                  fg:
-                    props.message.error?.name === "MessageAbortedError"
-                      ? theme.textMuted
-                      : local.agent.color(props.message.agent),
-                }}
-              >
-                ▣{" "}
-              </span>{" "}
-              <span style={{ fg: theme.text }}>{Locale.titlecase(props.message.mode)}</span>
-              <span style={{ fg: theme.textMuted }}> · {model()}</span>
-              <Show when={duration()}>
-                <span style={{ fg: theme.textMuted }}> · {Locale.duration(duration())}</span>
-              </Show>
-              <Show when={props.message.error?.name === "MessageAbortedError"}>
-                <span style={{ fg: theme.textMuted }}> · interrupted</span>
-              </Show>
-            </text>
+          <box paddingLeft={3} marginTop={1} flexDirection="column" gap={1}>
+            <SponsorBlock
+              sticky
+              fallback={
+                <text>
+                  <span
+                    style={{
+                      fg:
+                        props.message.error?.name === "MessageAbortedError"
+                          ? theme.textMuted
+                          : local.agent.color(props.message.agent),
+                    }}
+                  >
+                    ▣{" "}
+                  </span>{" "}
+                  <span style={{ fg: theme.text }}>{Locale.titlecase(props.message.mode)}</span>
+                  <span style={{ fg: theme.textMuted }}> · {model()}</span>
+                  <Show when={duration()}>
+                    <span style={{ fg: theme.textMuted }}> · {Locale.duration(duration())}</span>
+                  </Show>
+                </text>
+              }
+            />
+            <Show when={props.message.error?.name === "MessageAbortedError"}>
+              <text fg={theme.textMuted}>· interrupted</text>
+            </Show>
           </box>
         </Match>
       </Switch>
@@ -1642,6 +1655,8 @@ function ReasoningHeader(props: {
   duration?: string
 }) {
   const { theme } = useTheme()
+  const sponsor = useSponsorDisplay(() => !props.done, { sticky: true })
+  const sponsorColor = useSponsorColor(sponsor)
   const fg = () =>
     props.open
       ? RGBA.fromValues(theme.warning.r, theme.warning.g, theme.warning.b, theme.thinkingOpacity)
@@ -1651,28 +1666,36 @@ function ReasoningHeader(props: {
     <Switch>
       <Match when={!props.done}>
         <box flexDirection="row">
-          <Spinner color={fg()}>{props.title ? "Thinking: " + props.title : "Thinking"}</Spinner>
+          <Show
+            when={sponsor()}
+            fallback={<Spinner color={fg()}>{props.title ? "Thinking: " + props.title : "Thinking"}</Spinner>}
+          >
+            <Spinner color={sponsorColor()}>{sponsorLabel(sponsor()!)}</Spinner>
+          </Show>
         </box>
       </Match>
       <Match when={true}>
-        <text fg={fg()} wrapMode="none">
-          <Show when={props.toggleable}>
-            <span>{props.open ? "- " : "+ "}</span>
-          </Show>
-          <span>Thought</span>
-          <Show when={props.title || props.duration}>
-            <span>: </span>
-          </Show>
-          <Show when={props.title}>
-            <span>{props.title}</span>
-          </Show>
-          <Show when={props.duration}>
-            <span>
-              {props.title ? " · " : ""}
-              {props.duration}
-            </span>
-          </Show>
-        </text>
+        <box flexDirection="row">
+          <text fg={fg()} wrapMode="none">
+            <Show when={props.toggleable}>
+              <span>{props.open ? "- " : "+ "}</span>
+            </Show>
+            <span>Thought</span>
+            <Show when={props.title || props.duration}>
+              <span>: </span>
+            </Show>
+            <Show when={props.title}>
+              <span>{props.title}</span>
+            </Show>
+            <Show when={props.duration}>
+              <span>
+                {props.title ? " · " : ""}
+                {props.duration}
+              </span>
+            </Show>
+          </text>
+          <SponsorBadge ad={sponsor()} />
+        </box>
       </Match>
     </Switch>
   )
@@ -1844,6 +1867,7 @@ function InlineTool(props: {
   const renderer = useRenderer()
   const [hover, setHover] = createSignal(false)
   const [errorExpanded, setErrorExpanded] = createSignal(false)
+  const sponsor = useSponsorText(() => !props.complete)
 
   const permission = createMemo(() => {
     const callID = sync.data.permission[ctx.sessionID]?.at(0)?.tool?.callID
@@ -1884,7 +1908,7 @@ function InlineTool(props: {
       error={error()}
       errorExpanded={errorExpanded()}
       complete={props.complete}
-      pending={props.pending}
+      pending={props.pending + sponsor()}
       failure={props.failure}
       spinner={props.spinner}
       subagent={props.subagent}
@@ -2002,6 +2026,7 @@ function BlockTool(props: {
   const renderer = useRenderer()
   const [hover, setHover] = createSignal(false)
   const error = createMemo(() => (props.part?.state.status === "error" ? props.part.state.error : undefined))
+  const sponsor = useSponsorText(() => Boolean(props.spinner))
   return (
     <box
       id={props.part ? "tool-block-" + props.part.id : undefined}
@@ -2029,7 +2054,7 @@ function BlockTool(props: {
           </text>
         }
       >
-        <Spinner color={theme.textMuted}>{props.title.replace(/^# /, "")}</Spinner>
+        <Spinner color={theme.textMuted}>{props.title.replace(/^# /, "") + sponsor()}</Spinner>
       </Show>
       {props.children}
       <Show when={error()}>

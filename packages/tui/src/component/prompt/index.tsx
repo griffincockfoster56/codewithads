@@ -24,6 +24,7 @@ import { useSDK } from "../../context/sdk"
 import { useRoute } from "../../context/route"
 import { useProject } from "../../context/project"
 import { useSync } from "../../context/sync"
+import { SponsorBlock, SponsorFooterBadge, SponsorSlotBadge } from "../../context/ads"
 import { useEvent } from "../../context/event"
 import { editorSelectionKey, useEditorContext, type EditorSelection } from "../../context/editor"
 import { normalizePromptContent, openEditor } from "../../editor"
@@ -70,6 +71,8 @@ export type PromptProps = {
     normal?: string[]
     shell?: string[]
   }
+  /** Hide the agent/model meta line (home screen shows an ad there instead). */
+  hideModelMeta?: boolean
 }
 
 function pastedFilepath(value: string, platform: string) {
@@ -1434,36 +1437,43 @@ export function Prompt(props: PromptProps) {
               syntaxStyle={syntax()}
             />
             <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1} justifyContent="space-between">
-              <box flexDirection="row" gap={1}>
-                <Show when={local.agent.current()} fallback={<box height={1} />}>
-                  {(agent) => (
-                    <>
-                      <text fg={fadeColor(highlight(), agentMetaAlpha())}>
-                        {store.mode === "shell" ? "Shell" : Locale.titlecase(agent().name)}
-                      </text>
-                      <Show when={store.mode === "normal"}>
-                        <box flexDirection="row" gap={1}>
-                          <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>·</text>
-                          <text
-                            flexShrink={0}
-                            fg={fadeColor(leader() ? theme.textMuted : theme.text, modelMetaAlpha())}
-                          >
-                            {local.model.parsed().model}
-                          </text>
-                          <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>{currentProviderLabel()}</text>
-                          <Show when={showVariant()}>
-                            <text fg={fadeColor(theme.textMuted, variantMetaAlpha())}>·</text>
-                            <text>
-                              <span style={{ fg: fadeColor(theme.warning, variantMetaAlpha()), bold: true }}>
-                                {local.model.variant.current()}
-                              </span>
+              <box flexGrow={1}>
+                <SponsorBlock
+                  slot={1}
+                  fallback={
+                    <box flexDirection="row" gap={1}>
+                      <Show when={!props.hideModelMeta && local.agent.current()} fallback={<box height={1} />}>
+                        {(agent) => (
+                          <>
+                            <text fg={fadeColor(highlight(), agentMetaAlpha())}>
+                              {store.mode === "shell" ? "Shell" : Locale.titlecase(agent().name)}
                             </text>
-                          </Show>
-                        </box>
+                            <Show when={store.mode === "normal"}>
+                              <box flexDirection="row" gap={1}>
+                                <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>·</text>
+                                <text
+                                  flexShrink={0}
+                                  fg={fadeColor(leader() ? theme.textMuted : theme.text, modelMetaAlpha())}
+                                >
+                                  {local.model.parsed().model}
+                                </text>
+                                <text fg={fadeColor(theme.textMuted, modelMetaAlpha())}>{currentProviderLabel()}</text>
+                                <Show when={showVariant()}>
+                                  <text fg={fadeColor(theme.textMuted, variantMetaAlpha())}>·</text>
+                                  <text>
+                                    <span style={{ fg: fadeColor(theme.warning, variantMetaAlpha()), bold: true }}>
+                                      {local.model.variant.current()}
+                                    </span>
+                                  </text>
+                                </Show>
+                              </box>
+                            </Show>
+                          </>
+                        )}
                       </Show>
-                    </>
-                  )}
-                </Show>
+                    </box>
+                  }
+                />
               </box>
               <Show when={hasRightContent()}>
                 <box flexDirection="row" gap={1} alignItems="center">
@@ -1514,6 +1524,7 @@ export function Prompt(props: PromptProps) {
                       <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
                     </Show>
                   </box>
+                  <SponsorSlotBadge slot={2} />
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {
                       const retry = createMemo(() => {
@@ -1579,6 +1590,7 @@ export function Prompt(props: PromptProps) {
                     {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
                   </span>
                 </text>
+                <SponsorFooterBadge />
               </box>
             </Match>
             <Match when={workspace.notice()}>
