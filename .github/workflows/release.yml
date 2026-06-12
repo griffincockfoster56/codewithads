@@ -1,0 +1,69 @@
+name: release
+
+# Each platform builds natively: opencode's native deps (@ff-labs/fff-bin-*)
+# only install for the host platform, so cross-compiling from one runner fails.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            target: darwin-arm64
+          - runner: macos-15-intel
+            target: darwin-x64
+          - runner: ubuntu-latest
+            target: linux-x64
+          - runner: ubuntu-24.04-arm
+            target: linux-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: install dependencies
+        run: bun install
+
+      - name: build binary (host platform)
+        run: bun script/build.ts --single --skip-install
+        working-directory: packages/opencode
+
+      - name: package
+        run: |
+          set -e
+          cd packages/opencode/dist
+          dir="$(ls -d opencode-* | head -1)"
+          test -x "$dir/bin/opencode"
+          (cd "$dir" && zip -rq "../codewithads-${{ matrix.target }}.zip" bin)
+          ls -la "codewithads-${{ matrix.target }}.zip"
+
+      - name: upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codewithads-${{ matrix.target }}
+          path: packages/opencode/dist/codewithads-${{ matrix.target }}.zip
+
+      - name: attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" \
+            "packages/opencode/dist/codewithads-${{ matrix.target }}.zip" \
+            --clobber || \
+          gh release create "${GITHUB_REF_NAME}" \
+            "packages/opencode/dist/codewithads-${{ matrix.target }}.zip" \
+            --title "codewithads ${GITHUB_REF_NAME}" \
+            --notes "Ad-supported opencode fork — install: curl -fsSL https://codewithads.com/install | bash"
