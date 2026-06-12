@@ -2,9 +2,10 @@ name: release
 
 # Each platform builds natively: opencode's native deps (@ff-labs/fff-bin-*)
 # only install for the host platform, so cross-compiling from one runner fails.
+# Our tags use the cwa- prefix: the upstream clone carries ~1k opencode tags.
 on:
   push:
-    tags: ["v*"]
+    tags: ["cwa-*"]
   workflow_dispatch:
 
 permissions:
